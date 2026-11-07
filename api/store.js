@@ -22,3 +22,19 @@ export async function setStatus(id,s){
  if(s==='cx'&&o.st!=='cx'){const P=await products();o.items.forEach(i=>{const p=P.find(x=>x.id===i.id);if(p)p.qty+=i.q});await set('products',P)}
  o.st=s;await set('orders',os);
  await tg('sendMessage',{chat_id:o.uid,text:`📦 Заказ №${id}: ${ST[s]}`});return o}
+// ===== расписание выдачи =====
+export const raw=r;
+export const DEFCFG={open:'12:00',close:'22:00',step:30,cap:3,days:3,places:['Hauptbahnhof (Hbf)','Ostbahnhof']};
+export const cfg=async()=>({...DEFCFG,...(await get('cfg',{}))});
+export const berlin=(d=new Date())=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d).map(x=>[x.type,x.value]));return{date:`${p.year}-${p.month}-${p.day}`,min:+p.hour*60+ +p.minute}};
+export const addDays=(date,n)=>{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const toMin=s=>{const[h,m]=s.split(':');return +h*60+ +m};
+const hm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+export async function slots(date){
+ const c=await cfg(),n=berlin(),os=await get('orders',[]),out=[];
+ if(date<n.date)return out;
+ for(let m=toMin(c.open);m<=toMin(c.close);m+=+c.step||30){
+  if(date===n.date&&m<n.min+30)continue;
+  const used=os.filter(o=>o.st!=='cx'&&o.slot&&o.slot.date===date&&o.slot.time===hm(m)).length;
+  if(used<c.cap)out.push(hm(m))}
+ return out}
