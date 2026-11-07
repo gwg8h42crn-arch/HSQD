@@ -15,7 +15,7 @@ async function card(chat,p,rows,q){const u=imgUrl(p);
  if(u)return tg('sendPhoto',{chat_id:chat,photo:u,caption:cardTx(p),parse_mode:'HTML',reply_markup:kb(rows)});
  return q&&!q.message.photo?edit(q,cardTx(p),rows):send(chat,cardTx(p),rows)}
 const prodRows=p=>{const r=[];if(p.qty>0)r.push([B('В корзину','add:'+p.id)]);r.push([B('←','cat:'+p.cat),B('Корзина','cart')]);return r};
-const HOME='<b>ABYSS · München</b>\nВыбирай, назначай время и место — забираешь без лишних слов.';
+const HOME='<b>HOOD · München</b>\nВыбирай, назначай время и место — забираешь без лишних слов.';
 const menu=()=>[[B('Каталог','cat')],[B('Корзина','cart'),B('Мои заказы','my')],[B('Часы и места','info'),{text:'Менеджер',url:'https://t.me/'+(process.env.MANAGER||'telegram')}]];
 const dayLabel=(d,t)=>d===t?'Сегодня':d===addDays(t,1)?'Завтра':new Date(d+'T12:00:00Z').toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'numeric',timeZone:'UTC'});
 const nextBtns=o=>{const i=o.id;return o.st==='new'?[[B('Принять',`os:${i}:acc`),B('Отмена',`os:${i}:cx`)]]:o.st==='acc'?[[B('Передан',`os:${i}:ship`),B('Отмена',`os:${i}:cx`)]]:o.st==='ship'?[[B('Выполнен',`os:${i}:done`)]]:[]};
