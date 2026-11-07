@@ -1,4 +1,4 @@
-const U=process.env.UPSTASH_REDIS_REST_URL,T=process.env.UPSTASH_REDIS_REST_TOKEN;
+const U=process.env.KV_REST_API_URL||process.env.UPSTASH_REDIS_REST_URL,T=process.env.KV_REST_API_TOKEN||process.env.UPSTASH_REDIS_REST_TOKEN;
 async function r(c){const x=await fetch(U,{method:'POST',headers:{Authorization:'Bearer '+T},body:JSON.stringify(c)});return (await x.json()).result}
 export const get=async(k,d=null)=>{const v=await r(['GET',k]);return v?JSON.parse(v):d};
 export const set=(k,v)=>r(['SET',k,JSON.stringify(v)]);
