@@ -210,7 +210,7 @@ footer{text-align:center;padding:70px 16px 40px;color:var(--m);font-size:13px;bo
 <div class="pm" id="pm" onclick="if(event.target===this)closePM()"><div class="pmw" id="pmw"></div></div>
 <script>
 // ===== НАСТРОЙКИ =====
-var BOT='Nocturneshop_bot',MGR='hood_manager01';   // ники без @
+var BOT='your_shop_bot',MGR='your_managers';   // ники без @
 // =====================
 var $=function(i){return document.getElementById(i)},cart={},P=[],C={open:'12:00',close:'22:00',places:['Hauptbahnhof (Hbf)','Ostbahnhof']},cat='all',term='';
 var COL=['#ff2d95','#19f0ff','#8a5cff'],COLR=['255,45,149','25,240,255','138,92,255'];
@@ -236,7 +236,7 @@ sign($('t1'),'HOOD');sign($('t2'),'HOOD');sign($('gn'),'18+');$('gn').querySelec
 // ---- капли неона стекают в лужу ----
 function drop(){var st=document.querySelector('.stage'),h=$('t1');if(!st||!document.body.classList.contains('on')||document.hidden)return;var W=h.offsetWidth,H=h.offsetHeight,x=h.getBoundingClientRect().left-st.getBoundingClientRect().left+rnd(.1,.9)*W,y0=H*.78,k=Math.random()<.5?'#ff2d95':'#19f0ff',d=document.createElement('div');
  d.className='dp';d.style.cssText='left:'+x+'px;top:'+y0+'px;background:'+k+';box-shadow:0 0 8px '+k+',0 0 18px '+k;st.appendChild(d);var fall=H*.22+58;
- d.animate([{height:'0px',opacity:0,transform:'translateY(0)'},{height:'16px',opacity:1,transform:'translateY(0)',offset:.3},{height:'10px',opacity:1,transform:'translateY(0)',offset:.5},{height:'24px',opacity:1,transform:'translateY('+fall+'px)',offset:.9},{height:'24px',opacity:0,transform:'translateY('+(fall+6)+'px)'}],{duration:1900,easing:'cubic-bezier(.5,0,.8,.6)'}).onfinish=function(){d.remove();plink();
+ d.animate([{height:'0px',opacity:0,transform:'translateY(0)'},{height:'16px',opacity:1,transform:'translateY(0)',offset:.3},{height:'10px',opacity:1,transform:'translateY(0)',offset:.5},{height:'24px',opacity:1,transform:'translateY('+fall+'px)',offset:.9},{height:'24px',opacity:0,transform:'translateY('+(fall+6)+'px)'}],{duration:1900,easing:'cubic-bezier(.5,0,.8,.6)'}).onfinish=function(){d.remove();
   for(var i=0;i<2;i++){var r=document.createElement('div');r.className='rp';r.style.cssText='left:'+x+'px;top:'+(y0+fall+10)+'px;color:'+k+';box-shadow:0 0 8px '+k;st.appendChild(r);r.animate([{transform:'scale(1)',opacity:.9},{transform:'scale('+(5+i*3)+')',opacity:0}],{duration:1300,delay:i*220,easing:'ease-out'}).onfinish=function(){this.effect.target.remove()}}}}
 setInterval(drop,950);
 // ---- вход ----
@@ -272,7 +272,7 @@ function openP(id){var p=P.filter(function(x){return x.id==id})[0];if(!p)return;
  +'<div class="sp2"><div><span>Линия</span><b>'+esc(p.brand)+'</b></div><div><span>Формат</span><b>'+esc(p.vol||'—')+'</b></div><div><span>Город</span><b>München</b></div><div><span>Выдача</span><b>'+esc(C.open)+'–'+esc(C.close)+'</b></div></div><div class="pp">'+p.eur+'<small> €</small></div>'
  +(ok?'<div class="pa"><div class="stp"><button onclick="mqc(-1,'+p.qty+')">−</button><b id="mqn">1</b><button onclick="mqc(1,'+p.qty+')">+</button></div><button class="btn p" id="pbtn" onclick="addQ('+id+',this)">В корзину</button></div><a class="btn" style="width:100%;text-align:center" href="https://t.me/'+BOT+'?start=p'+id+'" target="_blank" rel="noopener">Заказать в Telegram</a>':'<button class="btn" style="width:100%">Нет в наличии</button>')+'</div>';
  w.scrollTop=0;$('pm').classList.add('open');whoosh()}
-function closePM(){$('pm').classList.remove('open')}
+function closePM(){if($('pm').classList.contains('open'))whooshC();$('pm').classList.remove('open')}
 function mqc(d,mx){mq=Math.max(1,Math.min(mx||99,mq+d));$('mqn').textContent=mq}
 function addQ(id,b){var p=P.filter(function(x){return x.id==id})[0];if(!p)return;var o=cart[id]||0,n=Math.min(o+mq,p.qty);if(n>o){orb(b);pop();cart[id]=n;sv();var el=document.querySelector('.card[data-id="'+id+'"]');if(el)el.outerHTML=card(p,' rv in');bar();b.textContent='Добавлено';setTimeout(function(){b.textContent='В корзину'},1400)}else{b.textContent='Больше нет';setTimeout(function(){b.textContent='В корзину'},1400)}}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closePM();closeOv()}});
@@ -325,11 +325,13 @@ function env(node,t,peak,att,dec){node.gain.setValueAtTime(0,t);node.gain.linear
 function tick(){if(!SND)return;var s=AC.createBufferSource();s.buffer=NB;var f=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;f.type='bandpass';f.frequency.value=2800;g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);s.connect(f);f.connect(g);g.connect(MG);s.start(t,rnd(0,2),.06)}
 function pop(){if(!SND)return;var o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.type='sine';o.frequency.setValueAtTime(380,t);o.frequency.exponentialRampToValueAtTime(900,t+.1);env(g,t,.22,.01,.2);o.connect(g);g.connect(MG);o.start(t);o.stop(t+.3)}
 function plink(){if(!SND)return;var o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime,f=rnd(700,1500);o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*1.6,t+.07);env(g,t,.1,.005,.35);o.connect(g);g.connect(MG);o.start(t);o.stop(t+.45)}
-function whoosh(){if(!SND)return;var s=AC.createBufferSource();s.buffer=NB;var f=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;f.type='bandpass';f.Q.value=.8;f.frequency.setValueAtTime(400,t);f.frequency.exponentialRampToValueAtTime(2600,t+.35);env(g,t,.2,.12,.3);s.connect(f);f.connect(g);g.connect(MG);s.start(t,rnd(0,2),.5)}
+function whoosh(){if(!SND)return;var t=AC.currentTime,s=AC.createBufferSource();s.buffer=NB;var f=AC.createBiquadFilter(),g=AC.createGain();f.type='bandpass';f.Q.value=.7;f.frequency.setValueAtTime(300,t);f.frequency.exponentialRampToValueAtTime(3200,t+.45);env(g,t,1.1,.14,.4);s.connect(f);f.connect(g);g.connect(MG);s.start(t,rnd(0,2),.7);
+ var o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(46,t+.3);env(og,t,.7,.01,.45);o.connect(og);og.connect(MG);o.start(t);o.stop(t+.6)}
+function whooshC(){if(!SND)return;var t=AC.currentTime,s=AC.createBufferSource();s.buffer=NB;var f=AC.createBiquadFilter(),g=AC.createGain();f.type='bandpass';f.Q.value=.7;f.frequency.setValueAtTime(2800,t);f.frequency.exponentialRampToValueAtTime(260,t+.3);env(g,t,.6,.05,.28);s.connect(f);f.connect(g);g.connect(MG);s.start(t,rnd(0,2),.5)}
 function neonOn(){[0,.3,.55,.95,1.3].forEach(function(d){setTimeout(tick,d*1000)});var o=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;o.type='sawtooth';o.frequency.value=100;f.type='lowpass';f.frequency.value=700;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.14,t+.05);g.gain.setValueAtTime(.14,t+.9);g.gain.exponentialRampToValueAtTime(.001,t+1.6);o.connect(f);f.connect(g);g.connect(MG);o.start(t);o.stop(t+1.7)}
 function thunder(){if(!SND)return;var s=AC.createBufferSource();s.buffer=NB;s.loop=true;var f=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;f.type='lowpass';f.frequency.value=150;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.95,t+1.3);g.gain.exponentialRampToValueAtTime(.001,t+6);s.connect(f);f.connect(g);g.connect(MG);s.start(t);s.stop(t+6.5)}
 function lightning(){if(document.body.classList.contains('on')&&!document.hidden&&scrollY<700){var e=$('fl');e.classList.remove('go');void e.offsetWidth;e.classList.add('go');if(SND)setTimeout(thunder,rnd(700,1800))}setTimeout(lightning,rnd(26000,58000))}
-document.addEventListener('pointerdown',function(e){if(SND&&e.target.closest&&e.target.closest('.btn,.add,.cats button,.stp button,.bn,.cb,.sb'))tick()});
+document.addEventListener('pointerdown',function(e){if(SND&&e.target.closest&&e.target.closest('.btn,.add,.cats button,.stp button,.bn,.cb,.sb,.nv,.pmw .x'))tick()});
 cats();places();list();bar();watch();
 fetch('/api/config').then(function(r){return r.json()}).then(function(d){if(d&&d.places){C=d;places()}}).catch(function(){});
 fetch('/api/products').then(function(r){return r.json()}).then(function(d){if(Array.isArray(d)){P=d.filter(function(p){return p.cat!=='pod'});brands();cats();list();bar()}}).catch(function(){});
