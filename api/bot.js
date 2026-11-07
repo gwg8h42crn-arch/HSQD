@@ -14,7 +14,7 @@ async function card(chat,p,rows,q){const u=imgUrl(p);
  if(q&&(u||q.message.photo))await del(q);
  if(u)return tg('sendPhoto',{chat_id:chat,photo:u,caption:cardTx(p),parse_mode:'HTML',reply_markup:kb(rows)});
  return q&&!q.message.photo?edit(q,cardTx(p),rows):send(chat,cardTx(p),rows)}
-const prodRows=p=>{const r=[];if(p.qty>0)r.push([B('В корзину','add:'+p.id)]);r.push([B('←','cat:'+p.cat),B('Корзина','cart')]);return r};
+const prodRows=p=>{const r=[];if(p.qty>0)r.push([B('В корзину','add:'+p.id)]);r.push([B('←','cat:'+p.brand),B('Корзина','cart')]);return r};
 const HOME='<b>HOOD · München</b>\nВыбирай, назначай время и место — забираешь без лишних слов.';
 const menu=()=>[[B('Каталог','cat')],[B('Корзина','cart'),B('Мои заказы','my')],[B('Часы и места','info'),{text:'Менеджер',url:'https://t.me/'+(process.env.MANAGER||'telegram')}]];
 const dayLabel=(d,t)=>d===t?'Сегодня':d===addDays(t,1)?'Завтра':new Date(d+'T12:00:00Z').toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'numeric',timeZone:'UTC'});
@@ -90,9 +90,9 @@ async function onCb(q){
  tg('answerCallbackQuery',{callback_query_id:q.id});
  if(a==='home')return edit(q,HOME,menu());
  if(a==='info'){const C=await cfg();return edit(q,`<b>Часы выдачи:</b> ${C.open}–${C.close}\n<b>Места:</b>\n${C.places.map(x=>'• '+esc(x)).join('\n')}`,[[B('← Назад','home')]])}
- if(a==='cat'){
-  if(!b)return edit(q,'<b>Выбери раздел</b>',[...Object.entries(CATS).map(([k,v])=>[B(v,'cat:'+k)]),[B('← Назад','home')]]);
-  return edit(q,CATS[b],[...P.filter(p=>p.cat===b).map(p=>[B(`${p.qty>0?'':'нет · '}${p.name} — ${p.eur} €`,'p:'+p.id)]),[B('← Назад','cat')]])}
+ if(a==='cat'){const V=P.filter(p=>p.cat!=='pod');
+  if(!b){const bs=[...new Set(V.map(p=>p.brand))];return edit(q,'<b>Выбери бренд</b>',[...bs.map(x=>[B(x,'cat:'+x)]),[B('← Назад','home')]])}
+  return edit(q,'<b>'+esc(b)+'</b>',[...V.filter(p=>p.brand===b).map(p=>[B(`${p.qty>0?'':'нет · '}${p.name} — ${p.eur} €`,'p:'+p.id)]),[B('← Назад','cat')]])}
  if(a==='p'){const p=P.find(x=>x.id==b);if(!p)return;return card(q.message.chat.id,p,prodRows(p),q)}
  if(a==='add'||a==='dec'){const cr=await get('cart:'+id,{}),p=P.find(x=>x.id==b);if(!p)return;
   let n=(cr[b]||0)+(a==='add'?1:-1);n=Math.min(n,p.qty);if(n<=0)delete cr[b];else cr[b]=n;await set('cart:'+id,cr);const[t,r]=await cartView(id,P);return edit(q,t,r)}
