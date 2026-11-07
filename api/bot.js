@@ -1,5 +1,5 @@
 import {get,set,raw,incr,products,tg,ADMINS,ST,setStatus,cfg,berlin,addDays,slots} from './store.js';
-const CATS={liq:'Жидкости',snus:'SNUS',pod:'POD-системы'},EM={liq:'',snus:'',pod:''};
+const CATS={liq:'Жидкости',snus:'SNUS'},EM={liq:'',snus:''};
 let HOST='';
 const esc=s=>String(s).replace(/[<>&]/g,'');
 const kb=r=>({inline_keyboard:r});
@@ -48,7 +48,7 @@ async function checkout(q,date,time){
  return edit(q,`<b>Заказ №${oid} принят!</b>\n\nМесто: ${esc(place)}\nВремя: ${date.split('-').reverse().slice(0,2).join('.')} в ${time}\nСумма: ${t} €\n\nПодтверждение придёт сюда.`,menu())}
 
 async function adminMenu(id,q){
- const tx='<b>Админ-панель</b>\n\n<code>/add БРЕНД|liq|Название|Описание|цена|кол-во</code> — новый товар (liq / snus / pod). Отправь это <b>подписью к фото</b>, и товар создастся сразу с фото.\n<code>/send текст</code> — рассылка всем клиентам',
+ const tx='<b>Админ-панель</b>\n\n<code>/add БРЕНД|liq|Название|Описание|цена|кол-во</code> — новый товар (liq / snus). Отправь это <b>подписью к фото</b>, и товар создастся сразу с фото.\n<code>/send текст</code> — рассылка всем клиентам',
  rows=[[B('Товары, фото и остатки','ap')],[B('Активные заказы','ao'),B('Статистика','ast')],[B('Часы и места','acfg')]];
  return q?edit(q,tx,rows):send(id,tx,rows)}
 

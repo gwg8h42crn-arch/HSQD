@@ -142,7 +142,7 @@ footer{text-align:center;padding:70px 16px 40px;color:var(--m);font-size:13px;bo
  <div class="hud"><div><span>München / DE</span><span>48.1351 N · 11.5820 E</span></div><div class="r"><span id="ck">--:--:--</span><span class="os" id="os">...</span></div></div>
  <div class="stage"><div class="neon" id="t1" aria-label="HOOD"></div><div class="neon refl" id="t2" aria-hidden="true"></div><div id="dps"></div></div>
  <div class="city">Night · Liquid · Street</div>
- <p class="sub">Жидкости, POD и SNUS. Собираешь корзину, выбираешь точку и время в боте. Забираешь в своём районе.</p>
+ <p class="sub">Жидкости и SNUS. Собираешь корзину, выбираешь точку и время в боте. Забираешь в своём районе.</p>
  <div class="row"><a class="btn p" href="#shop">В каталог</a><a class="btn" id="tgb" href="#">Telegram-бот</a></div>
  <div class="floor" id="floor"></div>
 </div>
@@ -158,7 +158,7 @@ footer{text-align:center;padding:70px 16px 40px;color:var(--m);font-size:13px;bo
 <div class="ov" id="ov" onclick="if(event.target===this)closeOv()"><div class="sheet" id="sh"></div></div>
 <script>
 // ===== НАСТРОЙКИ =====
-var BOT='Nocturneshop_bot',MGR='hood_manager01';   // ники без @
+var BOT='your_shop_bot',MGR='your_managers';   // ники без @
 // =====================
 var $=function(i){return document.getElementById(i)},cart={},P=[],C={open:'12:00',close:'22:00',places:['Hauptbahnhof (Hbf)','Ostbahnhof']},cat='all',term='';
 var COL=['#ff2d95','#19f0ff','#8a5cff'],COLR=['255,45,149','25,240,255','138,92,255'];
@@ -193,7 +193,7 @@ function enter(){var g=$('gate');g.classList.add('up');setTimeout(function(){doc
 function clock(){var t=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date()),a=t.split(':'),m=+a[0]*60+ +a[1],o=C.open.split(':'),c=C.close.split(':'),op=m>=+o[0]*60+ +o[1]&&m<=+c[0]*60+ +c[1];$('ck').textContent=t+' CET';$('os').className='os'+(op?' on':'');$('os').textContent=op?'Открыто · '+C.open+'–'+C.close:'Закрыто · '+C.open+'–'+C.close}
 setInterval(clock,1000);clock();
 // ---- каталог ----
-var CATS={all:'Всё',liq:'Жидкости',snus:'SNUS',pod:'POD'};
+var CATS={all:'Всё',liq:'Жидкости',snus:'SNUS'};
 function cats(){$('cats').innerHTML=Object.keys(CATS).map(function(k){return '<button class="'+(k==cat?'on':'')+'" onclick="cat=\''+k+'\';cats();list()">'+CATS[k]+'</button>'}).join('')}
 var WV='M-40 8Q-30 0-20 8T0 8T20 8T40 8T60 8T80 8T100 8T120 8T140 8V90H-40Z';
 var BT='<svg class="bt" viewBox="0 0 100 160"><g clip-path="url(#bclip)"><rect x="24" y="60" width="52" height="90" fill="#08070d"/><g class="liq"><g transform="translate(0,84)"><path class="wave" d="'+WV+'" fill="currentColor"/></g><rect x="0" y="92" width="100" height="70" fill="url(#ld)"/><circle class="bu" cx="38" cy="140" r="2.6" fill="#fff" opacity=".8"/><circle class="bu b2" cx="58" cy="144" r="2" fill="#fff" opacity=".8"/><circle class="bu b3" cx="48" cy="136" r="1.5" fill="#fff" opacity=".8"/></g></g><path d="M22 72a14 14 0 0 1 14-14h28a14 14 0 0 1 14 14v66a14 14 0 0 1-14 14H36a14 14 0 0 1-14-14z" fill="url(#gl)" stroke="rgba(255,255,255,.42)" stroke-width="1.5"/><rect x="38" y="38" width="24" height="22" fill="url(#gl)" stroke="rgba(255,255,255,.38)" stroke-width="1.5"/><rect x="34" y="12" width="32" height="28" rx="4" fill="url(#cp)"/><rect x="34" y="12" width="32" height="2.5" rx="1" fill="#fff" opacity=".3"/><rect x="30" y="92" width="40" height="34" fill="#000" opacity=".6" stroke="rgba(255,255,255,.3)"/><text x="50" y="107" font-family="IBM Plex Mono,monospace" font-size="7" fill="#fff" text-anchor="middle" letter-spacing="1.6">HOOD</text><rect x="36" y="112" width="28" height="1" fill="currentColor"/><text x="50" y="121" font-family="IBM Plex Mono,monospace" font-size="4.5" fill="#fff" opacity=".7" text-anchor="middle" letter-spacing="1">30 ML</text><rect x="27" y="76" width="3.5" height="56" rx="1.75" fill="#fff" opacity=".35"/><rect x="71" y="80" width="2" height="30" rx="1" fill="#fff" opacity=".2"/></svg>';
@@ -242,5 +242,5 @@ document.addEventListener('pointerdown',function(e){var k=COL;for(var i=0;i<7;i+
   requestAnimationFrame(t)})()})();
 cats();places();list();bar();watch();
 fetch('/api/config').then(function(r){return r.json()}).then(function(d){if(d&&d.places){C=d;places()}}).catch(function(){});
-fetch('/api/products').then(function(r){return r.json()}).then(function(d){if(Array.isArray(d)){P=d;list();bar()}}).catch(function(){});
+fetch('/api/products').then(function(r){return r.json()}).then(function(d){if(Array.isArray(d)){P=d.filter(function(p){return p.cat!=='pod'});list();bar()}}).catch(function(){});
 </script></body></html>
