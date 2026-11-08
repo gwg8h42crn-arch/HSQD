@@ -8,12 +8,12 @@ const send=(id,text,rows)=>tg('sendMessage',{chat_id:id,text,parse_mode:'HTML',r
 const del=q=>tg('deleteMessage',{chat_id:q.message.chat.id,message_id:q.message.message_id});
 const edit=async(q,text,rows)=>{const m=q.message;if(m.photo){await del(q);return send(m.chat.id,text,rows)}return tg('editMessageText',{chat_id:m.chat.id,message_id:m.message_id,text,parse_mode:'HTML',reply_markup:kb(rows||[])})};
 const imgUrl=p=>p.img?(p.img[0]==='/'?'https://'+HOST+p.img:p.img):'';
-const cardTx=p=>`<b>${esc(p.brand)} · ${esc(p.name)}</b>\n\nЦена: <b>${p.eur} €</b>\n${p.qty>0?'В наличии: '+p.qty:'Нет в наличии'}`;
+const cardTx=(p,full)=>`<b>${esc(p.brand)} · ${esc(p.name)}</b>\n\nЦена: <b>${p.eur} €</b>\n${p.qty>0?(full?'В наличии: '+p.qty:'В наличии'):'Нет в наличии'}`;
 // показать карточку товара (с фото, если есть)
-async function card(chat,p,rows,q){const u=imgUrl(p);
+async function card(chat,p,rows,q,full){const u=imgUrl(p);
  if(q&&(u||q.message.photo))await del(q);
- if(u)return tg('sendPhoto',{chat_id:chat,photo:u,caption:cardTx(p),parse_mode:'HTML',reply_markup:kb(rows)});
- return q&&!q.message.photo?edit(q,cardTx(p),rows):send(chat,cardTx(p),rows)}
+ if(u)return tg('sendPhoto',{chat_id:chat,photo:u,caption:cardTx(p,full),parse_mode:'HTML',reply_markup:kb(rows)});
+ return q&&!q.message.photo?edit(q,cardTx(p,full),rows):send(chat,cardTx(p,full),rows)}
 const prodRows=p=>{const r=[];if(p.qty>0)r.push([B('В корзину','add:'+p.id)]);else r.push([B('Сообщить, когда будет','ntf:'+p.id)]);r.push([B('←','cat:'+p.brand),B('Корзина','cart')]);return r};
 const HOME='<b>HOOD · München</b>\nВыбирай, назначай время и место — забираешь без лишних слов.';
 const menu=()=>[[B('Каталог','cat')],[B('Корзина','cart'),B('Мои заказы','my')],[B('Повторить заказ','rep')],[B('Часы и места','info'),{text:'Менеджер',url:'https://t.me/'+(process.env.MANAGER||'telegram')}]];
@@ -41,7 +41,7 @@ async function checkout(q,date,time){
   items.push({id:p.id,n:p.brand+' '+p.name,q:c[k],eur:p.eur});t+=p.eur*c[k];p.qty-=c[k]}
  if(!items.length)return edit(q,'Корзина пуста',menu());
  const li=await loyInfo(id),pct=li.on&&li.elig?li.pct:0,sub=t;t=Math.round(t*(100-pct))/100;
- const oid=await incr('oc'),o={id:oid,uid:id,u:q.from.username?'@'+q.from.username:q.from.first_name,items,t,sub,pct,slot:{place,date,time},st:'new',ts:Date.now()};
+ const oid=await incr('oc'),o={id:oid,uid:id,u:q.from.username?'@'+q.from.username:q.from.first_name,items,t,sub,pct,slot:{place,date,time},st:'new',method:'pickup',ts:Date.now()};
  const os=await get('orders',[]);os.unshift(o);
  await set('orders',os.slice(0,300));if(pct){const L=li.L;L.used=L.c;await set('loy:'+id,L)}await set('products',P);await set('cart:'+id,{});await set('st:'+id,null);
  for(const a of ADMINS){await send(a,''+orderTxt(o),nextBtns(o));
@@ -75,7 +75,7 @@ async function onMsg(m){
  if(t.startsWith('/start')){await set('st:'+id,null);const a=t.split(' ')[1]||'',P=await products();
   if(a[0]==='n'){const p=P.find(x=>x.id==a.slice(1));if(p){if(p.qty>0)return card(id,p,prodRows(p));await subN(id,p.id);return send(id,`Готово. Напишу сразу, как появится: ${esc(p.brand)} ${esc(p.name)}.`,[[B('Каталог','cat')]])}}
   if(a[0]==='p'){const p=P.find(x=>x.id==a.slice(1));if(p)return card(id,p,prodRows(p))}
-  if(a[0]==='c'){const cr={};a.split('_').slice(1,9).forEach(s=>{const[i,n]=s.split('x'),p=P.find(x=>x.id==i);if(p&&+n>0&&p.qty>0)cr[i]=Math.min(+n,p.qty)});await set('cart:'+id,cr);const[tx,r]=await cartView(id,P);return send(id,tx,r)}
+  if(a[0]==='c'){const cr={};let cl=0;a.split('_').slice(1,9).forEach(s=>{const[i,n]=s.split('x'),p=P.find(x=>x.id==i);if(p&&+n>0&&p.qty>0){cr[i]=Math.min(+n,p.qty);if(cr[i]<+n)cl=1}});await set('cart:'+id,cr);const[tx,r]=await cartView(id,P);return send(id,(cl?'Некоторых позиций сейчас меньше, чем ты выбрал. Корзина обновлена.\n\n':'')+tx,r)}
   return send(id,HOME,menu())}
  if(adm){
   if(t==='/admin')return adminMenu(id);
@@ -102,8 +102,11 @@ async function onCb(q){
   let n=(cr[b]||0)+(a==='add'?1:-1);n=Math.min(n,p.qty);if(n<=0)delete cr[b];else cr[b]=n;await set('cart:'+id,cr);const[t,r]=await cartView(id,P);return edit(q,t,r)}
  if(a==='cart'){const[t,r]=await cartView(id,P);return edit(q,t,r)}
  if(a==='clr'){await set('cart:'+id,{});return edit(q,'Корзина очищена',menu())}
- if(a==='buy'){const cr=await get('cart:'+id,{});if(!Object.keys(cr).length)return edit(q,'Корзина пуста',menu());const C=await cfg();
-  return edit(q,'<b>Где заберёшь?</b>',[...C.places.map((x,i)=>[B(x,'pl:'+i)]),[B('←','cart')]])}
+ if(a==='buy'){const cr=await get('cart:'+id,{});if(!Object.keys(cr).length)return edit(q,'Корзина пуста',menu());
+  return edit(q,'<b>Как получить заказ?</b>',[[B('Выдача (время и место)','pk')],[B('Доставка · скоро','dlv')],[B('← Назад','cart')]])}
+ if(a==='dlv')return edit(q,'<b>Доставка в разработке.</b>\nСкоро появится. Пока можно оформить заказ с выдачей: выбери удобное время и место.',[[B('Выбрать выдачу','pk')],[B('← Назад','buy')]]);
+ if(a==='pk'){const cr=await get('cart:'+id,{});if(!Object.keys(cr).length)return edit(q,'Корзина пуста',menu());const C=await cfg();
+  return edit(q,'<b>Где заберёшь?</b>',[...C.places.map((x,i)=>[B(x,'pl:'+i)]),[B('← Назад','buy')]])}
  if(a==='pl'){await set('st:'+id,{place:+b});const C=await cfg(),t=berlin().date,rows=[];
   for(let i=0;i<C.days;i++){const d=addDays(t,i);if((await slots(d)).length)rows.push([B(dayLabel(d,t),'dy:'+d)])}
   return edit(q,rows.length?'<b>Какой день?</b>':'Свободных окон нет, напиши менеджеру',[...rows,[B('←','buy')]])}
@@ -125,7 +128,7 @@ async function onCb(q){
  if(a==='ap')return edit(q,'<b>Товары</b> — нажми для правки',[...P.map(p=>[B(`${p.img?'[фото] ':''}${p.qty} шт · ${p.name} · ${p.eur}€`,'ae:'+p.id)]),[B('←','am')]]);
  if(a==='ae'||a==='aq'||a==='apr'){const p=P.find(x=>x.id==b);if(!p)return;
   const wasQ=p.qty;if(a==='aq')p.qty=Math.max(0,p.qty+ +c);if(a==='apr')p.eur=Math.max(0,p.eur+ +c);if(a!=='ae'){await set('products',P);if(wasQ<=0&&p.qty>0)await restock([{id:p.id,qty:0}],P)}
-  return card(q.message.chat.id,p,[[B('−1',`aq:${p.id}:-1`),B('+1',`aq:${p.id}:1`),B('+10',`aq:${p.id}:10`)],[B('цена −1 €',`apr:${p.id}:-1`),B('цена +1 €',`apr:${p.id}:1`)],[B('Загрузить фото','aph:'+p.id)],[B('Удалить','adel:'+p.id)],[B('←','ap')]],q)}
+  return card(q.message.chat.id,p,[[B('−1',`aq:${p.id}:-1`),B('+1',`aq:${p.id}:1`),B('+10',`aq:${p.id}:10`)],[B('цена −1 €',`apr:${p.id}:-1`),B('цена +1 €',`apr:${p.id}:1`)],[B('Загрузить фото','aph:'+p.id)],[B('Удалить','adel:'+p.id)],[B('←','ap')]],q,true)}
  if(a==='aph'){await set('st:'+id,{k:'photo',id:+b});return send(id,'Пришли фото товара следующим сообщением')}
  if(a==='adel'){await set('products',P.filter(x=>x.id!=b));return edit(q,'Удалено',[[B('←','ap')]])}
  if(a==='acfg'){const C=await cfg();return edit(q,`<b>Выдача</b>\n\n${C.open}–${C.close}, шаг ${C.step} мин\nЗаказов на одно время: ${C.cap}\nДней вперёд: ${C.days}\nМеста: ${C.places.map(esc).join(' · ')}\nБонус: каждый ${C.loyEvery}-й заказ, скидка ${C.loyPct}%\n\n<code>/hours 12:00-22:00</code>\n<code>/step 30</code>\n<code>/cap 3</code>\n<code>/days 3</code>\n<code>/loyalty 5 10</code> (каждый 5-й заказ, скидка 10%; 0 0 выключит)\n<code>/places Hauptbahnhof (Hbf)|Ostbahnhof</code>`,[[B('←','am')]])}
