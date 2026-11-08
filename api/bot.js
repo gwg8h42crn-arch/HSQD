@@ -8,7 +8,7 @@ const send=(id,text,rows)=>tg('sendMessage',{chat_id:id,text,parse_mode:'HTML',r
 const del=q=>tg('deleteMessage',{chat_id:q.message.chat.id,message_id:q.message.message_id});
 const edit=async(q,text,rows)=>{const m=q.message;if(m.photo){await del(q);return send(m.chat.id,text,rows)}return tg('editMessageText',{chat_id:m.chat.id,message_id:m.message_id,text,parse_mode:'HTML',reply_markup:kb(rows||[])})};
 const imgUrl=p=>p.img?(p.img[0]==='/'?'https://'+HOST+p.img:p.img):'';
-const cardTx=p=>`<b>${esc(p.brand)} · ${esc(p.name)}</b>\n${esc(p.desc)}\n${esc(p.vol||'')}\n\nЦена: <b>${p.eur} €</b>   ${p.qty>0?'В наличии: '+p.qty:'Нет в наличии'}`;
+const cardTx=p=>`<b>${esc(p.brand)} · ${esc(p.name)}</b>\n\nЦена: <b>${p.eur} €</b>\n${p.qty>0?'В наличии: '+p.qty:'Нет в наличии'}`;
 // показать карточку товара (с фото, если есть)
 async function card(chat,p,rows,q){const u=imgUrl(p);
  if(q&&(u||q.message.photo))await del(q);
