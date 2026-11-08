@@ -16,14 +16,32 @@ export const HIDDEN=['pod'];
 export const products=async()=>{let p=await get('products');if(!p){p=SEED;await set('products',p)}return p};
 export const tg=(m,b)=>fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/${m}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(x=>x.json()).catch(()=>({}));
 // смена статуса заказа: возвращает остатки при отмене и пишет клиенту в бота
+export async function restock(before,after){
+ const subs=await get('notify',{});let ch=false;
+ for(const p of after){const b=before.find(x=>x.id===p.id);
+  if(b&&b.qty<=0&&p.qty>0&&subs[p.id]&&subs[p.id].length){
+   for(const u of subs[p.id])await tg('sendMessage',{chat_id:u,text:`Снова в наличии: ${p.brand} ${p.name}`,reply_markup:{inline_keyboard:[[{text:'Открыть',callback_data:'p:'+p.id}]]}});
+   delete subs[p.id];ch=true}}
+ if(ch)await set('notify',subs)}
+export const fmt=n=>{n=Math.round(n*100)/100;return Number.isInteger(n)?String(n):n.toFixed(2)};
+export async function loyInfo(uid){
+ const c=await cfg(),L=await get('loy:'+uid,{c:0,used:-1}),N=Math.floor(+c.loyEvery)||0,pct=+c.loyPct||0;
+ if(!N||!pct)return{on:false};
+ const elig=(L.c+1)%N===0&&L.used!==L.c;
+ return{on:true,N,pct,c:L.c,elig,left:N-1-(L.c%N),L}}
 export async function setStatus(id,s){
  const os=await get('orders',[]),o=os.find(x=>x.id===id);if(!o||o.st===s||!ST[s])return null;
- if(s==='cx'&&o.st!=='cx'){const P=await products();o.items.forEach(i=>{const p=P.find(x=>x.id===i.id);if(p)p.qty+=i.q});await set('products',P)}
- o.st=s;await set('orders',os);
- await tg('sendMessage',{chat_id:o.uid,text:`Заказ №${id}: ${ST[s]}`});return o}
+ if(s==='cx'&&o.st!=='cx'){const P=await products(),bef=JSON.parse(JSON.stringify(P));
+  o.items.forEach(i=>{const p=P.find(x=>x.id===i.id);if(p)p.qty+=i.q});await set('products',P);await restock(bef,P);
+  if(o.pct){const L=await get('loy:'+o.uid,{c:0,used:-1});L.used=-1;await set('loy:'+o.uid,L)}}
+ const was=o.st;o.st=s;await set('orders',os);
+ await tg('sendMessage',{chat_id:o.uid,text:`Заказ №${id}: ${ST[s]}`});
+ if(s==='done'&&was!=='done'){const L=await get('loy:'+o.uid,{c:0,used:-1});L.c++;await set('loy:'+o.uid,L);const li=await loyInfo(o.uid);
+  if(li.on)await tg('sendMessage',{chat_id:o.uid,text:li.elig?`Спасибо за заказ! Твой следующий заказ со скидкой ${li.pct}%.`:`Спасибо за заказ! До заказа со скидкой ${li.pct}% осталось: ${li.left}.`})}
+ return o}
 // ===== расписание выдачи =====
 export const raw=r;
-export const DEFCFG={open:'12:00',close:'22:00',step:30,cap:3,days:3,places:['Hauptbahnhof (Hbf)','Ostbahnhof']};
+export const DEFCFG={open:'12:00',close:'22:00',step:30,cap:3,days:3,places:['Hauptbahnhof (Hbf)','Ostbahnhof'],loyEvery:5,loyPct:10};
 export const cfg=async()=>({...DEFCFG,...(await get('cfg',{}))});
 export const berlin=(d=new Date())=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d).map(x=>[x.type,x.value]));return{date:`${p.year}-${p.month}-${p.day}`,min:+p.hour*60+ +p.minute}};
 export const addDays=(date,n)=>{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
