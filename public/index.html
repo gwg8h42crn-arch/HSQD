@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HOOD · München</title>
+<meta name="description" content="HOOD München: жидкости и не только. Собери корзину, выбери точку и время выдачи. 18+">
+<meta name="theme-color" content="#050508">
+<meta property="og:type" content="website"><meta property="og:site_name" content="HOOD München"><meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="HOOD · München"><meta property="og:description" content="Ночной Мюнхен, неон и жижа. Выбирай, назначай время и место, забирай. 18+">
+<meta property="og:url" content="https://nocture-alpha.vercel.app/"><meta property="og:image" content="https://nocture-alpha.vercel.app/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://nocture-alpha.vercel.app/og.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23050508'/%3E%3Ctext x='32' y='49' text-anchor='middle' font-family='Impact,Arial Black,sans-serif' font-size='46' fill='none' stroke='%23ff2d95' stroke-width='3'%3EH%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap">
 <style>
 @property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
@@ -179,6 +187,14 @@ footer{text-align:center;padding:70px 16px 40px;color:var(--m);font-size:13px;bo
 .pa{display:flex;gap:10px;margin:16px 0 10px}.pa .btn{flex:1;padding:16px 10px}.pa .stp{flex:none}
 .ntf{flex:none;border:1px solid var(--cya);color:var(--cya);font-family:var(--mo);font-size:11px;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:13px 14px;transition:.25s}.ntf:hover{background:var(--cya);color:#000;box-shadow:0 0 22px #19f0ff88}
 .mth{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 0}.mth div{border:1px solid #ffffff30;padding:12px 14px}.mth b{display:block;font-family:var(--bb);font-weight:400;font-size:22px;letter-spacing:2px;text-transform:uppercase}.mth small{font-family:var(--mo);font-size:10.5px;letter-spacing:1px;color:var(--m);text-transform:uppercase}.mth .on{border-color:var(--mag);box-shadow:0 0 20px #ff2d9533;background:#ff2d9512}.mth .off{opacity:.5;border-style:dashed}
+.mapw{position:relative;border:1px solid var(--ln);margin-bottom:12px;overflow:hidden}.mapw:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 70px #000;z-index:500}
+#map{height:340px;background:#07060c;font-family:var(--s)}@media(min-width:760px){#map{height:440px}}
+.leaflet-container{background:#07060c}.leaflet-tile-pane{filter:saturate(1.25) contrast(1.05) hue-rotate(-8deg)}
+.mk{background:none;border:0}.mk b{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px;border-radius:50%;background:#0a0a12;border:2px solid var(--cya);color:#fff;font:400 16px/24px var(--bb);text-align:center;box-shadow:0 0 16px var(--cya)}
+.mk i{position:absolute;inset:2px;border-radius:50%;border:1px solid var(--cya);animation:pg 2.4s ease-out infinite}.mk .b2{animation-delay:1.2s}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0b0a12;color:#fff;border:1px solid var(--ln);border-radius:0;box-shadow:0 0 30px #19f0ff22}.leaflet-popup-content{font-size:13px;line-height:1.6}.leaflet-popup-content a{color:var(--cya)}.leaflet-popup-close-button{color:#fff!important}
+.leaflet-bar a{background:#0b0a12;color:#fff;border-color:#ffffff30}.leaflet-bar a:hover{background:var(--mag);color:#000}
+.leaflet-control-attribution{background:#05050acc!important;color:#8c8a9c!important;font-size:10px}.leaflet-control-attribution a{color:#8c8a9c!important}
 </style></head><body>
 <svg width="0" height="0" style="position:absolute"><defs>
 <filter id="rip" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.07" numOctaves="2" seed="4" result="n"><animate attributeName="baseFrequency" dur="8s" values="0.004 0.07;0.007 0.11;0.004 0.07" repeatCount="indefinite"/></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="16"/></filter>
@@ -205,14 +221,16 @@ footer{text-align:center;padding:70px 16px 40px;color:var(--m);font-size:13px;bo
  <div class="grid" id="list"></div></section>
 <section><div class="eb rv">03 / как это работает</div><h2 class="rv">Три шага</h2><div class="bar2 rv"></div>
  <div class="steps"><div class="step rv"><b>01</b><h3>Выбираешь</h3><p>Собери корзину на сайте или прямо в боте.</p></div><div class="step rv"><b>02</b><h3>Время и место</h3><p>В боте выбираешь способ: выдача (точка и время) или доставка (скоро). Менеджер подтверждает.</p></div><div class="step rv"><b>03</b><h3>Забираешь</h3><p>Приходишь в назначенное время, оплата при получении.</p></div></div></section>
-<section id="where"><div class="eb rv">04 / точки выдачи</div><h2 class="rv">Где забрать</h2><div class="bar2 rv"></div><p class="lead rv" id="wl"></p><div class="places" id="pl"></div></section>
+<section id="where"><div class="eb rv">04 / точки выдачи</div><h2 class="rv">Где забрать</h2><div class="bar2 rv"></div><p class="lead rv" id="wl"></p><div class="mapw rv"><div id="map"></div></div><div class="places" id="pl"></div></section>
+<section id="bonus" style="display:none"><div class="eb rv">05 / бонусы</div><h2 class="rv">Скидки</h2><div class="bar2 rv"></div><p class="lead rv">Постоянным клиентам и тем, кто приводит друзей.</p><div class="steps" id="bns"></div><div class="row" style="margin-top:22px;justify-content:flex-start"><a class="btn p" id="invb" href="#" style="display:none">Получить ссылку для друга</a></div></section>
 <footer><div class="big">HOOD</div>Менеджер: <a id="mg" href="#"></a><p style="margin-top:14px;font-family:var(--mo);font-size:11px;letter-spacing:2px">MÜNCHEN · 2026 · ЗАКАЗЫ ЧЕРЕЗ TELEGRAM · 18+</p></footer>
 <button class="bar" id="bar" onclick="openCart()"><span id="bn"></span><span id="bt"></span></button>
 <div class="ov" id="ov" onclick="if(event.target===this)closeOv()"><div class="sheet" id="sh"></div></div>
 <div class="pm" id="pm" onclick="if(event.target===this)closePM()"><div class="pmw" id="pmw"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 // ===== НАСТРОЙКИ =====
-var BOT='Hood01_bot',MGR='hood_manager01';   // ники без @
+var BOT='your_shop_bot',MGR='your_managers';   // ники без @
 // =====================
 var $=function(i){return document.getElementById(i)},cart={},P=[],C={open:'12:00',close:'22:00',places:['Hauptbahnhof (Hbf)','Ostbahnhof']},cat='all',term='';
 var COL=['#ff2d95','#19f0ff','#8a5cff'],COLR=['255,45,149','25,240,255','138,92,255'];
@@ -284,8 +302,8 @@ function mqc(d,mx){mq=Math.max(1,Math.min(mx||99,mq+d));$('mqn').textContent=mq}
 function addQ(id,b){var p=P.filter(function(x){return x.id==id})[0];if(!p)return;var o=cart[id]||0,n=Math.min(o+mq,p.qty);if(n>o){orb(b);pop();cart[id]=n;sv();var el=document.querySelector('.card[data-id="'+id+'"]');if(el)el.outerHTML=card(p,' rv in');bar();b.textContent='Добавлено';setTimeout(function(){b.textContent='В корзину'},1400)}else{b.textContent='Больше нет';setTimeout(function(){b.textContent='В корзину'},1400)}}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closePM();closeOv()}});
 function places(){$('wl').textContent='Выдача ежедневно '+C.open+'–'+C.close+'. Точное время выбираешь в боте.';
- $('pl').innerHTML=C.places.map(function(x,i){return '<a class="place rv" target="_blank" rel="noopener" href="https://www.google.com/maps/search/'+encodeURIComponent(x+' München')+'"><i class="ping"></i><small>точка '+(i+1<10?'0':'')+(i+1)+'</small><h3>'+esc(x)+'</h3><p>'+esc(C.open)+'–'+esc(C.close)+' / открыть на карте</p></a>'}).join('');
- var w=['HOOD','MÜNCHEN','ВЫДАЧА '+C.open.replace(/:00/,'')+'–'+C.close.replace(/:00/,''),'18+'].concat(C.places.map(function(x){return x.replace(/\s*\(.*\)/,'').toUpperCase()})),s=w.map(function(x){return '<span>'+x+'</span><span>/</span>'}).join('');$('m1').innerHTML=s+s+s+s;clock();watch()}
+ $('pl').innerHTML=C.places.map(function(x,i){return '<a class="place rv" target="_blank" rel="noopener" href="https://www.google.com/maps/search/'+encodeURIComponent(x+' München')+'" onclick="return focusPl('+i+')"><i class="ping"></i><small>точка '+(i+1<10?'0':'')+(i+1)+'</small><h3>'+esc(x)+'</h3><p>'+esc(C.open)+'–'+esc(C.close)+' / открыть на карте</p></a>'}).join('');
+ var w=['HOOD','MÜNCHEN','ВЫДАЧА '+C.open.replace(/:00/,'')+'–'+C.close.replace(/:00/,''),'18+'].concat(C.places.map(function(x){return x.replace(/\s*\(.*\)/,'').toUpperCase()})),s=w.map(function(x){return '<span>'+x+'</span><span>/</span>'}).join('');$('m1').innerHTML=s+s+s+s;clock();bonus();mapRefresh();watch()}
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.1});
 function watch(){document.querySelectorAll('.rv:not(.in)').forEach(function(el,i){el.style.transitionDelay=(i%4)*.08+'s';io.observe(el)})}
 $('q').oninput=function(){term=this.value;list()};
@@ -339,6 +357,26 @@ function neonOn(){[0,.3,.55,.95,1.3].forEach(function(d){setTimeout(tick,d*1000)
 function thunder(){if(!SND)return;var s=AC.createBufferSource();s.buffer=NB;s.loop=true;var f=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;f.type='lowpass';f.frequency.value=150;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.95,t+1.3);g.gain.exponentialRampToValueAtTime(.001,t+6);s.connect(f);f.connect(g);g.connect(MG);s.start(t);s.stop(t+6.5)}
 function lightning(){if(document.body.classList.contains('on')&&!document.hidden&&scrollY<700){var e=$('fl');e.classList.remove('go');void e.offsetWidth;e.classList.add('go');if(SND)setTimeout(thunder,rnd(700,1800))}setTimeout(lightning,rnd(26000,58000))}
 document.addEventListener('pointerdown',function(e){if(SND&&e.target.closest&&e.target.closest('.btn,.add,.cats button,.stp button,.bn,.cb,.sb,.nv,.pmw .x'))tick()});
+// ---- карта точек выдачи ----
+var MAP=null,MKI={},MAPV=false,GEO={hbf:[48.1402,11.5586],ost:[48.1274,11.6043]};
+function geoOf(x,i){var g=(C.geo||[])[i];if(g&&/^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/.test(g)){var a=g.split(',');return[+a[0],+a[1]]}var n=x.toLowerCase();if(/hauptbahnhof|hbf/.test(n))return GEO.hbf;if(/ostbahnhof|\bost\b/.test(n))return GEO.ost;return null}
+function addMk(x,i,g){if(!MAP)return;if(MKI[i])MAP.removeLayer(MKI[i]);var ic=L.divIcon({className:'mk',html:'<i></i><i class="b2"></i><b>'+(i+1)+'</b>',iconSize:[34,34],iconAnchor:[17,17]}),m=L.marker(g,{icon:ic}).addTo(MAP);
+ m.bindPopup('<b>'+esc(x)+'</b><br>'+esc(C.open)+'–'+esc(C.close)+'<br><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+g[0]+','+g[1]+'">Построить маршрут</a>');MKI[i]=m;fitMap()}
+function fitMap(){var a=Object.keys(MKI).map(function(k){return MKI[k]});if(a.length>1)MAP.fitBounds(L.featureGroup(a).getBounds().pad(.4));else if(a.length===1)MAP.setView(a[0].getLatLng(),14)}
+function geocode(x,i){var k='g_'+x;try{var c=JSON.parse(localStorage[k]||'null');if(c){addMk(x,i,c);return}}catch(e){}
+ fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(x+' München')).then(function(r){return r.json()}).then(function(d){if(d&&d[0]){var g=[+d[0].lat,+d[0].lon];try{localStorage[k]=JSON.stringify(g)}catch(e){}addMk(x,i,g)}}).catch(function(){})}
+function drawMap(){if(!window.L||!$('map'))return;
+ if(!MAP){MAP=L.map('map',{scrollWheelZoom:false}).setView([48.1351,11.5820],12);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19,subdomains:'abcd'}).addTo(MAP);setTimeout(function(){MAP.invalidateSize();fitMap()},700)}
+ Object.keys(MKI).forEach(function(k){MAP.removeLayer(MKI[k])});MKI={};
+ C.places.forEach(function(x,i){var g=geoOf(x,i);if(g)addMk(x,i,g);else geocode(x,i)})}
+function mapRefresh(){if(MAPV)drawMap()}
+function focusPl(i){var m=MKI[i];if(!m||!MAP)return true;MAP.flyTo(m.getLatLng(),15,{duration:1.2});setTimeout(function(){m.openPopup()},1200);$('map').scrollIntoView({behavior:'smooth',block:'center'});return false}
+new IntersectionObserver(function(es){if(es[0].isIntersecting&&!MAPV){MAPV=true;drawMap()}},{rootMargin:'200px'}).observe($('where'));
+// ---- бонусы ----
+function bonus(){var a=[];if(C.loyEvery>0&&C.loyPct>0)a.push(['Каждый '+C.loyEvery+'-й заказ','Скидка '+C.loyPct+'% на каждый '+C.loyEvery+'-й выполненный заказ.']);
+ if(C.refPct>0){a.push(['Другу: '+C.refPct+'%','Друг по твоей ссылке получает скидку '+C.refPct+'% на первый заказ.']);a.push(['Тебе: '+C.refPct+'%','Когда друг получит первый заказ, у тебя скидка '+C.refPct+'% на следующий.'])}
+ $('bns').innerHTML=a.map(function(r,i){return '<div class="step rv"><b>0'+(i+1)+'</b><h3>'+esc(r[0])+'</h3><p>'+esc(r[1])+'</p></div>'}).join('');
+ $('bonus').style.display=a.length?'':'none';$('invb').style.display=C.refPct>0?'inline-block':'none';$('invb').href='https://t.me/'+BOT+'?start=invite';watch()}
 cats();places();list();bar();watch();
 fetch('/api/config').then(function(r){return r.json()}).then(function(d){if(d&&d.places){C=d;places()}}).catch(function(){});
 fetch('/api/products').then(function(r){return r.json()}).then(function(d){if(Array.isArray(d)){P=d.filter(function(p){return p.cat!=='pod'});brands();cats();list();bar()}}).catch(function(){});
