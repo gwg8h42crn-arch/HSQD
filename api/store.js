@@ -4,6 +4,8 @@ async function r(c){const x=await fetch(U,{method:'POST',headers:{Authorization:
 export const get=async(k,d=null)=>{const v=await r(['GET',k]);return v?JSON.parse(v):d};
 export const set=(k,v)=>r(['SET',k,JSON.stringify(v)]);
 export const incr=k=>r(['INCR',k]);
+export const SITE=()=>process.env.SITE_URL||'https://nocture-alpha.vercel.app';
+export async function mail(to,subject,text){const k=process.env.RESEND_API_KEY;if(!k||!to)return;try{await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+k,'content-type':'application/json'},body:JSON.stringify({from:process.env.MAIL_FROM||'HOOD <onboarding@resend.dev>',to:[to],subject,text})})}catch(e){}}
 export const ADMINS=(process.env.ADMIN_IDS||'').split(',').map(Number).filter(Boolean);
 export const ST={new:'Новый',acc:'Принят',ship:'Отправлен',done:'Выполнен',cx:'Отменён'};
 export const SEED=[
@@ -20,7 +22,7 @@ export async function restock(before,after){
  const subs=await get('notify',{});let ch=false;
  for(const p of after){const b=before.find(x=>x.id===p.id);
   if(b&&b.qty<=0&&p.qty>0&&subs[p.id]&&subs[p.id].length){
-   for(const u of subs[p.id])await tg('sendMessage',{chat_id:u,text:`Снова в наличии: ${p.brand} ${p.name}`,reply_markup:{inline_keyboard:[[{text:'Открыть',callback_data:'p:'+p.id}]]}});
+   for(const u of subs[p.id])await tg('sendMessage',{chat_id:u,text:`Снова в наличии: ${p.brand} ${p.name}`,reply_markup:{inline_keyboard:[[{text:'Открыть на сайте',url:SITE()}]]}});
    delete subs[p.id];ch=true}}
  if(ch)await set('notify',subs)}
 export const fmt=n=>{n=Math.round(n*100)/100;return Number.isInteger(n)?String(n):n.toFixed(2)};
@@ -53,8 +55,10 @@ export async function setStatus(id,s){
   o.items.forEach(i=>{const p=P.find(x=>x.id===i.id);if(p)p.qty+=i.q});await set('products',P);await restock(bef,P);
   await undoDisc(o)}
  const was=o.st;o.st=s;await set('orders',os);
- await tg('sendMessage',{chat_id:o.uid,text:`Заказ №${id}: ${ST[s]}`});
- if(s==='done'&&was!=='done'){
+ const txt=`Заказ №${id}: ${ST[s]}`;
+ if(o.uid)await tg('sendMessage',{chat_id:o.uid,text:txt});
+ if(o.web&&o.web.email)await mail(o.web.email,`HOOD: заказ №${id}`,`${txt}\n\nСтраница заказа: ${SITE()}/order.html?id=${id}&key=${o.web.key}`);
+ if(s==='done'&&was!=='done'&&o.uid){
   const L=await get('loy:'+o.uid,{c:0,used:-1});L.c++;await set('loy:'+o.uid,L);const li=await loyInfo(o.uid);
   if(li.on)await tg('sendMessage',{chat_id:o.uid,text:li.elig?`Спасибо за заказ! Твой следующий заказ со скидкой ${li.pct}%.`:`Спасибо за заказ! До заказа со скидкой ${li.pct}% осталось: ${li.left}.`});
   const rf=await get('ref:'+o.uid),first=!os.some(x=>x.uid===o.uid&&x.st==='done'&&x.id!==o.id);
@@ -76,7 +80,7 @@ export function calcStats(os,usersCount){
  return{today:sum(today),d7:sum(ago(6)),d30:sum(ago(29)),all,avg:all.n?r2(all.rev/all.n):0,cancelled:os.length-ok.length,done:os.filter(o=>o.st==='done').length,customers:ids.length,returning:ids.filter(k=>cust[k]>1).length,users:usersCount,series,top:srt(prod,'q').slice(0,8).map(x=>({...x,rev:r2(x.rev)})),brands:srt(br,'rev').map(x=>({...x,rev:r2(x.rev)})),places:Object.entries(pl).map(([p,n])=>({p,n})).sort((a,b)=>b.n-a.n),hours:Object.entries(hr).map(([h,n])=>({h,n})).sort((a,b)=>a.h<b.h?-1:1),disc:dc,saved:r2(saved)}}
 // ===== расписание выдачи =====
 export const raw=r;
-export const DEFCFG={open:'12:00',close:'22:00',step:30,cap:3,days:3,places:['Hauptbahnhof (Hbf)','Ostbahnhof'],loyEvery:5,loyPct:10,refPct:10,geo:['48.1402,11.5586','48.1274,11.6043']};
+export const DEFCFG={open:'12:00',close:'22:00',step:30,cap:3,days:3,places:['Hauptbahnhof (Hbf)','Ostbahnhof'],loyEvery:5,loyPct:10,refPct:10,botShop:false,geo:['48.1402,11.5586','48.1274,11.6043']};
 export const cfg=async()=>({...DEFCFG,...(await get('cfg',{}))});
 export const berlin=(d=new Date())=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d).map(x=>[x.type,x.value]));return{date:`${p.year}-${p.month}-${p.day}`,min:+p.hour*60+ +p.minute}};
 export const addDays=(date,n)=>{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};

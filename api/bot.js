@@ -15,15 +15,16 @@ async function card(chat,p,rows,q,full){const u=imgUrl(p);
  if(u)return tg('sendPhoto',{chat_id:chat,photo:u,caption:cardTx(p,full),parse_mode:'HTML',reply_markup:kb(rows)});
  return q&&!q.message.photo?edit(q,cardTx(p,full),rows):send(chat,cardTx(p,full),rows)}
 const prodRows=p=>{const r=[];if(p.qty>0)r.push([B('В корзину','add:'+p.id)]);else r.push([B('Сообщить, когда будет','ntf:'+p.id)]);r.push([B('←','cat:'+p.brand),B('Корзина','cart')]);return r};
-const HOME='<b>HOOD · München</b>\nВыбирай, назначай время и место — забираешь без лишних слов.';
-const menu=()=>[[B('Каталог','cat')],[B('Корзина','cart'),B('Мои заказы','my')],[B('Повторить заказ','rep')],[B('Пригласить друга','inv')],[B('Часы и места','info'),{text:'Менеджер',url:'https://t.me/'+(process.env.MANAGER||'telegram')}]];
+let SHOP=false,HOME='';const HOME_SHOP='<b>HOOD · München</b>\nВыбирай, назначай время и место — забираешь без лишних слов.',HOME_SITE='<b>HOOD · München</b>\nЗаказы оформляются на сайте. Здесь приходят подтверждения, напоминания и статусы заказов.';
+const menu=()=>SHOP?[[B('Каталог','cat')],[B('Корзина','cart'),B('Мои заказы','my')],[B('Повторить заказ','rep')],[B('Пригласить друга','inv')],[B('Часы и места','info'),{text:'Менеджер',url:'https://t.me/'+(process.env.MANAGER||'telegram')}]]:[[{text:'Открыть сайт',url:'https://'+HOST}],[B('Мои заказы','my')],[B('Пригласить друга','inv')],[B('Часы и места','info'),{text:'Менеджер',url:'https://t.me/'+(process.env.MANAGER||'telegram')}]];
 const dayLabel=(d,t)=>d===t?'Сегодня':d===addDays(t,1)?'Завтра':new Date(d+'T12:00:00Z').toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'numeric',timeZone:'UTC'});
 const nextBtns=o=>{const i=o.id;return o.st==='new'?[[B('Принять',`os:${i}:acc`),B('Отмена',`os:${i}:cx`)]]:o.st==='acc'?[[B('Передан',`os:${i}:ship`),B('Отмена',`os:${i}:cx`)]]:o.st==='ship'?[[B('Выполнен',`os:${i}:done`)]]:[]};
-const orderTxt=o=>`<b>Заказ №${o.id}</b> · <a href="tg://user?id=${o.uid}">${esc(o.u)}</a>\n${o.items.map(i=>`• ${esc(i.n)} × ${i.q}`).join('\n')}${o.pct?`\nСкидка ${o.pct}%`:''}\nСумма: ${fmt(o.t)} €\nМесто: ${esc(o.slot.place)}\nВремя: ${o.slot.date.split('-').reverse().slice(0,2).join('.')} в ${o.slot.time}\n${ST[o.st]}`;
+const orderTxt=o=>`<b>Заказ №${o.id}</b> · ${o.uid?`<a href="tg://user?id=${o.uid}">${esc(o.u)}</a>`:`${esc(o.u)} · ${esc(o.web.contact)}${o.web.email?' · '+esc(o.web.email):''} (сайт)`}\n${o.items.map(i=>`• ${esc(i.n)} × ${i.q}`).join('\n')}${o.pct?`\nСкидка ${o.pct}%`:''}\nСумма: ${fmt(o.t)} €\nМесто: ${esc(o.slot.place)}\nВремя: ${o.slot.date.split('-').reverse().slice(0,2).join('.')} в ${o.slot.time}\n${ST[o.st]}`;
 
 export default async function h(req,res){
  if(req.headers['x-telegram-bot-api-secret-token']!==process.env.WEBHOOK_SECRET)return res.status(403).end();
- HOST=req.headers.host;
+ HOST=req.headers.host;try{SHOP=!!(await cfg()).botShop}catch(e){}
+ HOME=SHOP?HOME_SHOP:HOME_SITE;
  try{const u=req.body;if(u.message)await onMsg(u.message);if(u.callback_query)await onCb(u.callback_query)}catch(e){console.error(e)}
  res.status(200).send('ok')}
 
@@ -82,6 +83,13 @@ async function onMsg(m){
    await set('st:'+id,null);return send(id,'Фото сохранено',[[B('← К товару','ae:'+st.id)]])}}
  if(t.startsWith('/start')){await set('st:'+id,null);const a=t.split(' ')[1]||'',P=await products();
   if(a==='invite')return invite(id);
+  if(!SHOP&&(a[0]==='p'||a[0]==='c'))return send(id,'Заказы оформляются на сайте.',[[{text:'Открыть сайт',url:'https://'+HOST}]]);
+  if(a[0]==='a'){const k='lnk:'+a.slice(1).replace(/\W/g,''),Lk=await get(k);
+   if(Lk&&!Lk.uid&&Date.now()-Lk.ts<18e5){Lk.uid=id;Lk.u=m.from.username?'@'+m.from.username:m.from.first_name;await set(k,Lk);return send(id,'Готово. Telegram привязан. Возвращайся на сайт и заверши заказ: здесь придут подтверждение и напоминание.',menu())}
+   return send(id,'Ссылка устарела. Вернись на сайт и нажми «Привязать Telegram» ещё раз.',menu())}
+  if(a[0]==='o'){const[oi,ky]=a.slice(1).split('_'),os=await get('orders',[]),o=os.find(x=>x.id==oi&&x.web&&x.web.key===ky);
+   if(!o)return send(id,'Заказ не найден.',menu());if(o.uid&&o.uid!==id)return send(id,'Этот заказ уже привязан к другому Telegram.',menu());
+   o.uid=id;o.u=m.from.username?'@'+m.from.username:m.from.first_name;await set('orders',os);return send(id,`Заказ №${o.id} привязан. Здесь придут подтверждение и напоминание.\n\n`+orderTxt(o),menu())}
   if(a[0]==='r'){const by=+a.slice(1),cf=await cfg(),rp=+cf.refPct||0;
    if(isNew&&rp>0&&by&&by!==id&&!(await get('ref:'+id))){await set('ref:'+id,{by,w:0,paid:0});const fl=await get('refl:'+by,[]);fl.push(id);await set('refl:'+by,fl);await send(by,'По твоей ссылке пришёл новый клиент. Скидка появится у тебя после его первого заказа.');await send(id,`Ты пришёл по приглашению. На первый заказ действует скидка ${rp}%.`)}
    return send(id,HOME,menu())}
@@ -96,6 +104,7 @@ async function onMsg(m){
   if(t.startsWith('/hours ')){const x=t.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);if(!x)return send(id,'Формат: <code>/hours 12:00-22:00</code>');
    await saveCfg(C=>{C.open=x[1].padStart(5,'0');C.close=x[2].padStart(5,'0')});return send(id,`Часы: ${x[1]}–${x[2]}`)}
   if(t.startsWith('/places ')){const pl=t.slice(8).split('|').map(s=>s.trim()).filter(Boolean);if(!pl.length)return;await saveCfg(C=>{C.places=pl});return send(id,'Места:\n'+pl.map(x=>'• '+esc(x)).join('\n'))}
+  if(t.startsWith('/shop ')){const on=/on|вкл|1/i.test(t.split(/\s+/)[1]||'');await saveCfg(C=>{C.botShop=on});return send(id,'Каталог и заказы в боте: '+(on?'включены':'выключены'))}
   if(t.startsWith('/ref ')){const pp=+t.split(/\s+/)[1];if(isNaN(pp))return send(id,'Формат: <code>/ref 10</code> (0 выключит)');await saveCfg(C=>{C.refPct=Math.min(90,Math.max(0,pp))});return send(id,`Готово: приглашения, скидка ${pp}%`)}
   if(t.startsWith('/loyalty ')){const x=t.split(/\s+/),n=+x[1],pp=+x[2];if(isNaN(n)||isNaN(pp))return send(id,'Формат: <code>/loyalty 5 10</code>');await saveCfg(C=>{C.loyEvery=Math.max(0,Math.floor(n));C.loyPct=Math.min(90,Math.max(0,pp))});return send(id,`Готово: каждый ${n}-й заказ, скидка ${pp}%`)}
   const M={'/step':'step','/cap':'cap','/days':'days'},k=M[t.split(' ')[0]],v=+t.split(' ')[1];
@@ -105,6 +114,7 @@ async function onMsg(m){
 async function onCb(q){
  const id=q.from.id,[a,b,c]=q.data.split(':'),adm=ADMINS.includes(id),P=await products();
  tg('answerCallbackQuery',{callback_query_id:q.id});
+ if(!SHOP&&['p','cat','add','dec','cart','clr','buy','pk','dlv','pl','dy','tm','rep'].includes(a))return edit(q,'Заказы оформляются на сайте.',[[{text:'Открыть сайт',url:'https://'+HOST}],[B('← Назад','home')]]);
  if(a==='home')return edit(q,HOME,menu());
  if(a==='info'){const C=await cfg();return edit(q,`<b>Часы выдачи:</b> ${C.open}–${C.close}\n<b>Места:</b>\n${C.places.map(x=>'• '+esc(x)).join('\n')}`,[[B('← Назад','home')]])}
  if(a==='cat'){const V=P.filter(p=>p.cat!=='pod');
@@ -145,7 +155,7 @@ async function onCb(q){
   return card(q.message.chat.id,p,[[B('−1',`aq:${p.id}:-1`),B('+1',`aq:${p.id}:1`),B('+10',`aq:${p.id}:10`)],[B('цена −1 €',`apr:${p.id}:-1`),B('цена +1 €',`apr:${p.id}:1`)],[B('Загрузить фото','aph:'+p.id)],[B('Удалить','adel:'+p.id)],[B('←','ap')]],q,true)}
  if(a==='aph'){await set('st:'+id,{k:'photo',id:+b});return send(id,'Пришли фото товара следующим сообщением')}
  if(a==='adel'){await set('products',P.filter(x=>x.id!=b));return edit(q,'Удалено',[[B('←','ap')]])}
- if(a==='acfg'){const C=await cfg();return edit(q,`<b>Выдача</b>\n\n${C.open}–${C.close}, шаг ${C.step} мин\nЗаказов на одно время: ${C.cap}\nДней вперёд: ${C.days}\nМеста: ${C.places.map(esc).join(' · ')}\nБонус: каждый ${C.loyEvery}-й заказ, скидка ${C.loyPct}%\nПриглашения: скидка ${C.refPct}%\n\n<code>/hours 12:00-22:00</code>\n<code>/step 30</code>\n<code>/cap 3</code>\n<code>/days 3</code>\n<code>/loyalty 5 10</code> (каждый 5-й заказ, скидка 10%; 0 0 выключит)\n<code>/ref 10</code> (скидка за приглашение друга, 0 выключит)\n<code>/places Hauptbahnhof (Hbf)|Ostbahnhof</code>`,[[B('←','am')]])}
+ if(a==='acfg'){const C=await cfg();return edit(q,`<b>Выдача</b>\n\n${C.open}–${C.close}, шаг ${C.step} мин\nЗаказов на одно время: ${C.cap}\nДней вперёд: ${C.days}\nМеста: ${C.places.map(esc).join(' · ')}\nБонус: каждый ${C.loyEvery}-й заказ, скидка ${C.loyPct}%\nПриглашения: скидка ${C.refPct}%\nЗаказы в боте: ${C.botShop?'вкл':'выкл'}\n\n<code>/hours 12:00-22:00</code>\n<code>/step 30</code>\n<code>/cap 3</code>\n<code>/days 3</code>\n<code>/loyalty 5 10</code> (каждый 5-й заказ, скидка 10%; 0 0 выключит)\n<code>/ref 10</code> (скидка за приглашение друга, 0 выключит)\n<code>/shop on</code> или <code>/shop off</code> (каталог и заказы в боте)\n<code>/places Hauptbahnhof (Hbf)|Ostbahnhof</code>`,[[B('←','am')]])}
  if(a==='ao'){const os=(await get('orders',[])).filter(o=>['new','acc','ship'].includes(o.st)).slice(0,10);
   if(!os.length)return edit(q,'Активных заказов нет',[[B('←','am')]]);
   for(const o of os)await send(id,orderTxt(o),nextBtns(o));return}
